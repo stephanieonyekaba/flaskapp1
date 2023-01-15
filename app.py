@@ -1,11 +1,14 @@
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
+
+
+
+
 
 
 class Todo(db.Model):
@@ -13,13 +16,34 @@ class Todo(db.Model):
     content = db.Column(db.String(200), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
+ # THIS VARIABLE REFERS TO THE FORM WE CREAE IN INDEX.JS. THIS IS THE POST REQUEST FOR WHEN WE PRESS SUBMIT
+# CONTENT REFERS TO THE ID OF THE FORM(SEE INDEX.JS)
     def __repr__(self):
         return '<Task %r>' % self.id
 
 
-@app.route('/', methods=['POST, 'GET])
+@app.route('/', methods=['POST', 'GET'])
 def index():
-    return render_template('index.html')
+    if request.method == 'POST':
+        task_content = request.form['content']
+        new_task = Todo(content=task_content)
+
+        try:
+            db.session.add(new_task)
+            db.session.commit()
+            return redirect('/')
+        except:
+            return 'There was an issue adding your task'
+
+    else:
+        # THIS IS GOING TO LOOK AT ALL THE DATABASES CONTENTS AND RETURN THEM ALL IN ORDER OF
+        # WHEN THEY WERE CREATED
+        tasks = Todo.query.order_by(Todo.date_created).all()
+        return render_template('index.html', tasks=tasks)
+
+
+
+
 
 
 if __name__ == "__main__":
